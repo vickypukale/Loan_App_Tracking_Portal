@@ -1,0 +1,75 @@
+---
+- name: Provision Loan Application Tracking Portal Server
+  hosts: all
+  become: yes
+  vars:
+    app_port: 8080
+    app_dir: /opt/loanapp
+    app_user: loanapp
+  
+  tasks:
+    - name: Ensure Java 17 is installed
+      apt:
+        name: openjdk-17-jre-headless
+        state: present
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Ensure Java 17 is installed (RedHat)
+      yum:
+        name: java-17-openjdk-headless
+        state: present
+      when: ansible_os_family == "RedHat"
+
+    - name: Create application group
+      group:
+        name: "{{ app_user }}"
+        state: present
+
+    - name: Create application user
+      user:
+        name: "{{ app_user }}"
+        group: "{{ app_user }}"
+        system: yes
+        create_home: no
+
+    - name: Create application directory
+      file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0755'
+
+    - name: Copy JAR file to target
+      copy:
+        src: target/loan-app-tracking-portal-0.0.1-SNAPSHOT.jar
+        dest: "{{ app_dir }}/app.jar"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0755'
+
+    - name: Create systemd service file
+      copy:
+        dest: /etc/systemd/system/loanapp.service
+        content: |
+          [Unit]
+          Description=Loan Application Tracking Portal
+          After=syslog.target network.target
+
+          [Service]
+          User={{ app_user }}
+          ExecStart=/usr/bin/java -jar {{ app_dir }}/app.jar
+          SuccessExitStatus=143
+          Restart=always
+          RestartSec=30
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Reload systemd and start service
+      systemd:
+        daemon_reload: yes
+        name: loanapp
+        state: started
+        enabled: yes

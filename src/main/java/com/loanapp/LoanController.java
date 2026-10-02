@@ -5,7 +5,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/loans")
+@RequestMapping("/api/v1/loans") // changed mapping to cause conflict
 public class LoanController {
 
     @Autowired
@@ -14,6 +14,8 @@ public class LoanController {
     @PostMapping
     public LoanApplication submitApplication(@RequestBody LoanApplication application) {
         application.setStatus("SUBMITTED");
+        // Develop hotfix edit
+        System.out.println("Submitting application...");
         application.setSubmissionDate(new java.util.Date());
         return repository.save(application);
     }

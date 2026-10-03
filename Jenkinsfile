@@ -23,7 +23,7 @@ pipeline {
         
         stage('Build') {
             steps {
-                sh 'mvn clean compile'
+                bat 'mvn clean compile'
             }
         }
         
@@ -31,7 +31,7 @@ pipeline {
             steps {
                 // To deliberately introduce a failure, you would commit a failing test.
                 // This step runs the unit tests and selenium suite.
-                sh 'mvn test'
+                bat 'mvn test'
             }
             post {
                 always {
@@ -42,7 +42,7 @@ pipeline {
         
         stage('Package') {
             steps {
-                sh 'mvn package -DskipTests'
+                bat 'mvn package -DskipTests'
             }
         }
         
@@ -58,7 +58,7 @@ pipeline {
             steps {
                 echo "Deploying to ${APP_ENV} environment..."
                 // Simulation of deployment
-                sh 'echo Deploying to Tomcat/Nginx/Docker...'
+                bat 'echo Deploying to Tomcat/Nginx/Docker...'
             }
         }
     }

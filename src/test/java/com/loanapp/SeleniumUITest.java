@@ -24,15 +24,21 @@ public class SeleniumUITest {
 
     @BeforeAll
     public static void setupClass() {
-        WebDriverManager.chromedriver().setup();
+        try {
+            WebDriverManager.chromedriver().browserVersion("131").setup();
+        } catch (Exception e) {
+            WebDriverManager.chromedriver().setup();
+        }
     }
 
     @BeforeEach
     public void setupTest() {
         ChromeOptions options = new ChromeOptions();
-        options.addArguments("--headless");
+        options.addArguments("--headless=new");
         options.addArguments("--disable-gpu");
         options.addArguments("--no-sandbox");
+        options.addArguments("--disable-dev-shm-usage");
+        options.addArguments("--remote-allow-origins=*");
         driver = new ChromeDriver(options);
     }
 

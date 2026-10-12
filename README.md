@@ -5,7 +5,7 @@ A secure, CI/CD pipeline-enabled web application for tracking loan applications.
 ## Quick Start
 1. Clone the repository.
 2. Run `mvn spring-boot:run` to start the application.
-3. Access at `http://localhost:8080`.
+3. Access at `http://localhost:8085/loans`.
 
 ## Modules
 - **src/main/java**: Core application logic.

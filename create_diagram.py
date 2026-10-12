@@ -68,7 +68,7 @@ def generate_architecture_diagram(output_path="docs/architecture_diagram.png"):
              ["Ansible Controller", "Idempotent Playbook", "systemd Daemon", "Zero-Downtime Rollout"], c_ansible, b_ansible)
 
     # Bottom Node: Target Server & Portal
-    draw_box(25, 4, 50, 12, "Production Target Node (Tomcat / Docker Host: Port 8080)",
+    draw_box(25, 4, 50, 12, "Production Target Node (Tomcat / Docker Host: Port 8085)",
              ["Loan Application Tracking Portal (Spring Boot REST + Thymeleaf Dashboard)",
               "Health Checks | H2 In-Memory / PostgreSQL | Rollback Recovery Strategy"], c_prod, b_prod)
 

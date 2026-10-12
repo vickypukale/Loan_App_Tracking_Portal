@@ -1,29 +1,362 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Loan Dashboard</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loan Dashboard - Secure FinTech Portal</title>
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome 6 Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8fafc;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            color: #1e293b;
+        }
+        .navbar-brand {
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        .kpi-card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+        }
+        .badge-status-SUBMITTED { background-color: #0284c7; color: white; }
+        .badge-status-UNDER_REVIEW { background-color: #f59e0b; color: white; }
+        .badge-status-APPROVED { background-color: #10b981; color: white; }
+        .badge-status-REJECTED { background-color: #ef4444; color: white; }
+        .badge-status-EXCEPTION { background-color: #dc2626; color: white; animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+        .table th {
+            background-color: #f1f5f9;
+            color: #475569;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+        .score-high { color: #10b981; font-weight: bold; }
+        .score-med { color: #f59e0b; font-weight: bold; }
+        .score-low { color: #ef4444; font-weight: bold; }
+    </style>
 </head>
 <body>
-    <h1>Loan Application Dashboard</h1>
-    <h3>Total Applications: <span th:text="${totalCount}">0</span></h3>
-    
-    <table border="1">
-        <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Amount</th>
-            <th>Type</th>
-            <th>Status</th>
-            <th>Date</th>
-        </tr>
-        <tr th:each="app : ${applications}">
-            <td th:text="${app.id}">1</td>
-            <td th:text="${app.applicantName}">John Doe</td>
-            <td th:text="${app.amount}">1000</td>
-            <td th:text="${app.loanType}">Personal</td>
-            <td th:text="${app.status}">SUBMITTED</td>
-            <td th:text="${app.submissionDate}">2026-01-01</td>
-        </tr>
-    </table>
+
+    <!-- Top Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm py-3">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand d-flex align-items-center" href="/loans">
+                <i class="fa-solid fa-building-columns text-primary me-2 fa-lg"></i>
+                <span>LoanTrack<span class="text-primary">Portal</span></span>
+            </a>
+            <div class="d-flex align-items-center gap-3">
+                <span class="badge bg-secondary px-3 py-2"><i class="fa-solid fa-server me-1"></i> Port 8085</span>
+                <span class="badge bg-success px-3 py-2"><i class="fa-solid fa-circle-check me-1"></i> CI/CD Pipeline Active</span>
+                <button class="btn btn-primary btn-sm px-3" data-bs-toggle="modal" data-bs-target="#newApplicationModal">
+                    <i class="fa-solid fa-plus me-1"></i> New Application
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container-fluid px-4 py-4">
+
+        <!-- Page Header & Selenium Assert Targets -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="h3 fw-bold mb-1">Loan Application Dashboard</h1>
+                <p class="text-muted mb-0">Real-time loan workflow management, underwriting exceptions, and status tracking.</p>
+            </div>
+            <div>
+                <span class="text-muted fw-semibold">Total Applications: </span>
+                <span class="badge bg-primary fs-6 px-3 py-2" th:text="${totalCount}">0</span>
+            </div>
+        </div>
+
+        <!-- Alert / Exception View (If high-risk loans exist) -->
+        <div th:if="${exceptionCount > 0}" class="alert alert-danger d-flex align-items-center shadow-sm mb-4" role="alert">
+            <i class="fa-solid fa-triangle-exclamation fs-4 me-3"></i>
+            <div class="flex-grow-1">
+                <strong>Attention Required: </strong> 
+                <span th:text="${exceptionCount}">1</span> application(s) currently flagged with <strong>HIGH-RISK EXCEPTION</strong> (credit score &lt; 600 or large exposure).
+            </div>
+            <a th:href="@{/loans(status='EXCEPTION')}" class="btn btn-outline-danger btn-sm">Filter Exceptions</a>
+        </div>
+
+        <!-- Summary Indicators (KPI Cards) -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-2 col-6">
+                <div class="card kpi-card p-3 bg-white">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <p class="text-muted text-uppercase mb-1" style="font-size:0.75rem;">Total Applications</p>
+                            <h3 class="fw-bold mb-0" th:text="${totalCount}">0</h3>
+                        </div>
+                        <div class="text-primary fs-2"><i class="fa-solid fa-folder-open"></i></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2 col-6">
+                <div class="card kpi-card p-3 bg-white">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <p class="text-muted text-uppercase mb-1" style="font-size:0.75rem;">Under Review</p>
+                            <h3 class="fw-bold mb-0 text-warning" th:text="${reviewCount}">0</h3>
+                        </div>
+                        <div class="text-warning fs-2"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2 col-6">
+                <div class="card kpi-card p-3 bg-white">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <p class="text-muted text-uppercase mb-1" style="font-size:0.75rem;">Approved</p>
+                            <h3 class="fw-bold mb-0 text-success" th:text="${approvedCount}">0</h3>
+                        </div>
+                        <div class="text-success fs-2"><i class="fa-solid fa-circle-check"></i></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2 col-6">
+                <div class="card kpi-card p-3 bg-white">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <p class="text-muted text-uppercase mb-1" style="font-size:0.75rem;">Rejected</p>
+                            <h3 class="fw-bold mb-0 text-danger" th:text="${rejectedCount}">0</h3>
+                        </div>
+                        <div class="text-danger fs-2"><i class="fa-solid fa-ban"></i></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2 col-6">
+                <div class="card kpi-card p-3 bg-white">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <p class="text-muted text-uppercase mb-1" style="font-size:0.75rem;">Exceptions</p>
+                            <h3 class="fw-bold mb-0 text-danger" th:text="${exceptionCount}">0</h3>
+                        </div>
+                        <div class="text-danger fs-2"><i class="fa-solid fa-shield-halved"></i></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2 col-6">
+                <div class="card kpi-card p-3 bg-white">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <p class="text-muted text-uppercase mb-1" style="font-size:0.75rem;">Total Exposure</p>
+                            <h3 class="fw-bold mb-0 text-info" th:text="'$' + ${totalRequested}">$0</h3>
+                        </div>
+                        <div class="text-info fs-2"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Searchable Dashboard & Filter Bar -->
+        <div class="card border-0 shadow-sm p-3 mb-4 rounded-3 bg-white">
+            <form th:action="@{/loans}" method="get" class="row g-2 align-items-center">
+                <div class="col-md-5">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                        <input type="text" name="search" th:value="${currentSearch}" class="form-control bg-light border-start-0" placeholder="Search by Applicant Name, ID, or Loan Type...">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <select name="status" class="form-select bg-light" onchange="this.form.submit()">
+                        <option value="ALL" th:selected="${currentStatus == 'ALL'}">All Statuses</option>
+                        <option value="SUBMITTED" th:selected="${currentStatus == 'SUBMITTED'}">Submitted</option>
+                        <option value="UNDER_REVIEW" th:selected="${currentStatus == 'UNDER_REVIEW'}">Under Review</option>
+                        <option value="APPROVED" th:selected="${currentStatus == 'APPROVED'}">Approved</option>
+                        <option value="REJECTED" th:selected="${currentStatus == 'REJECTED'}">Rejected</option>
+                        <option value="EXCEPTION" th:selected="${currentStatus == 'EXCEPTION'}">Flagged Exception</option>
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-outline-primary flex-grow-1"><i class="fa-solid fa-filter me-1"></i> Filter</button>
+                    <a th:href="@{/loans}" class="btn btn-outline-secondary"><i class="fa-solid fa-arrows-rotate me-1"></i> Reset</a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Applications Data Table -->
+        <div class="table-container mb-4">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">ID</th>
+                        <th>Applicant</th>
+                        <th>Amount</th>
+                        <th>Type</th>
+                        <th>Credit Score</th>
+                        <th>Status</th>
+                        <th>Submission Date</th>
+                        <th class="text-end pe-4">Action &amp; Drill-Down</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:if="${#lists.isEmpty(applications)}">
+                        <td colspan="8" class="text-center py-5 text-muted">
+                            <i class="fa-regular fa-folder-open fs-2 d-block mb-2"></i>
+                            No loan applications found matching the selected filter.
+                        </td>
+                    </tr>
+                    <tr th:each="app : ${applications}">
+                        <td class="ps-4 fw-bold text-muted" th:text="'#LATP-' + ${app.id}">#LATP-1</td>
+                        <td>
+                            <div class="fw-semibold" th:text="${app.applicantName}">John Doe</div>
+                            <small class="text-muted" th:text="${app.riskRemarks}">Initial submission</small>
+                        </td>
+                        <td class="fw-bold" th:text="'$' + ${#numbers.formatDecimal(app.amount, 1, 'COMMA', 2, 'POINT')}">$25,000.00</td>
+                        <td>
+                            <span class="badge bg-light text-dark border px-2 py-1" th:text="${app.loanType}">Personal</span>
+                        </td>
+                        <td>
+                            <span th:class="${app.creditScore >= 720} ? 'score-high' : (${app.creditScore >= 650} ? 'score-med' : 'score-low')">
+                                <i class="fa-solid fa-gauge-simple-high me-1"></i>
+                                <span th:text="${app.creditScore != null ? app.creditScore : 'N/A'}">720</span>
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge rounded-pill px-3 py-1" 
+                                  th:classappend="'badge-status-' + ${app.status}"
+                                  th:text="${app.status}">SUBMITTED</span>
+                        </td>
+                        <td class="text-muted" th:text="${#dates.format(app.submissionDate, 'yyyy-MM-dd HH:mm')}">2026-10-12</td>
+                        <td class="text-end pe-4">
+                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" th:data-bs-target="'#drillDownModal-' + ${app.id}">
+                                <i class="fa-solid fa-circle-info me-1"></i> Drill-Down
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <!-- Modal 1: New Loan Application Entry Form -->
+    <div class="modal fade" id="newApplicationModal" tabindex="-1" aria-labelledby="newAppModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <form th:action="@{/loans/submit}" method="post">
+                    <div class="modal-header bg-dark text-white">
+                        <h5 class="modal-title" id="newAppModalLabel"><i class="fa-solid fa-file-circle-plus text-primary me-2"></i>New Loan Application Entry</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Applicant Full Name</label>
+                            <input type="text" name="applicantName" class="form-control" placeholder="e.g. John Doe" required>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-6">
+                                <label class="form-label fw-semibold">Loan Amount ($)</label>
+                                <input type="number" step="1000" name="amount" class="form-control" placeholder="e.g. 50000" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label fw-semibold">Credit Score</label>
+                                <input type="number" min="300" max="850" name="creditScore" class="form-control" placeholder="e.g. 720" value="720" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Loan Category</label>
+                            <select name="loanType" class="form-select" required>
+                                <option value="Personal">Personal Loan</option>
+                                <option value="Home Loan">Home Loan</option>
+                                <option value="Auto Loan">Auto Loan</option>
+                                <option value="Education">Education Loan</option>
+                                <option value="Business">Business Capital</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Underwriting Remarks</label>
+                            <textarea name="riskRemarks" class="form-control" rows="2" placeholder="Applicant employment, KYC status, or risk notes..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary px-4"><i class="fa-solid fa-paper-plane me-1"></i> Submit Application</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 2: Status Drill-Down & Decision Modal (One per application) -->
+    <div th:each="app : ${applications}" class="modal fade" th:id="'drillDownModal-' + ${app.id}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fw-bold">
+                        <i class="fa-solid fa-file-invoice-dollar text-primary me-2"></i>
+                        Application Dossier: <span th:text="'#LATP-' + ${app.id}">#LATP-1</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="bg-light p-3 rounded-3 mb-3">
+                        <div class="row g-2">
+                            <div class="col-6 text-muted">Applicant:</div>
+                            <div class="col-6 fw-bold text-end" th:text="${app.applicantName}">John Doe</div>
+                            <div class="col-6 text-muted">Requested Amount:</div>
+                            <div class="col-6 fw-bold text-end" th:text="'$' + ${app.amount}">$25,000</div>
+                            <div class="col-6 text-muted">Category:</div>
+                            <div class="col-6 fw-bold text-end" th:text="${app.loanType}">Personal</div>
+                            <div class="col-6 text-muted">Credit Score:</div>
+                            <div class="col-6 fw-bold text-end" th:text="${app.creditScore}">720</div>
+                            <div class="col-6 text-muted">Current Status:</div>
+                            <div class="col-6 fw-bold text-end">
+                                <span class="badge rounded-pill" th:classappend="'badge-status-' + ${app.status}" th:text="${app.status}">SUBMITTED</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-muted" style="font-size:0.85rem;">RISK &amp; AUDIT REMARKS</label>
+                        <p class="p-2 border rounded bg-white" th:text="${app.riskRemarks}">Verified</p>
+                    </div>
+
+                    <!-- Status Decision Form -->
+                    <form th:action="@{'/loans/' + ${app.id} + '/status'}" method="post" class="mt-4 border-top pt-3">
+                        <label class="form-label fw-bold">Update Underwriting Status</label>
+                        <div class="d-flex gap-2 mb-3">
+                            <button type="submit" name="status" value="APPROVED" class="btn btn-outline-success flex-grow-1 btn-sm">
+                                <i class="fa-solid fa-check me-1"></i> Approve
+                            </button>
+                            <button type="submit" name="status" value="UNDER_REVIEW" class="btn btn-outline-warning flex-grow-1 btn-sm">
+                                <i class="fa-solid fa-clock me-1"></i> In Review
+                            </button>
+                            <button type="submit" name="status" value="REJECTED" class="btn btn-outline-danger flex-grow-1 btn-sm">
+                                <i class="fa-solid fa-xmark me-1"></i> Reject
+                            </button>
+                            <button type="submit" name="status" value="EXCEPTION" class="btn btn-outline-dark flex-grow-1 btn-sm">
+                                <i class="fa-solid fa-flag me-1"></i> Flag
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5.3 Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

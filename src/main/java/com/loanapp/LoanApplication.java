@@ -14,7 +14,9 @@ public class LoanApplication {
     private String applicantName;
     private Double amount;
     private String loanType;
-    private String status;
+    private String status; // SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED, EXCEPTION
+    private Integer creditScore;
+    private String riskRemarks;
     private Date submissionDate;
     
     public LoanApplication() {}
@@ -24,20 +26,43 @@ public class LoanApplication {
         this.amount = amount;
         this.loanType = loanType;
         this.status = "SUBMITTED";
+        this.creditScore = 700;
+        this.riskRemarks = "Standard review required";
+        this.submissionDate = new Date();
+    }
+
+    public LoanApplication(String applicantName, Double amount, String loanType, String status, Integer creditScore, String riskRemarks) {
+        this.applicantName = applicantName;
+        this.amount = amount;
+        this.loanType = loanType;
+        this.status = status;
+        this.creditScore = creditScore;
+        this.riskRemarks = riskRemarks;
         this.submissionDate = new Date();
     }
 
     // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+    
     public String getApplicantName() { return applicantName; }
     public void setApplicantName(String applicantName) { this.applicantName = applicantName; }
+    
     public Double getAmount() { return amount; }
     public void setAmount(Double amount) { this.amount = amount; }
+    
     public String getLoanType() { return loanType; }
     public void setLoanType(String loanType) { this.loanType = loanType; }
+    
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    
+    public Integer getCreditScore() { return creditScore; }
+    public void setCreditScore(Integer creditScore) { this.creditScore = creditScore; }
+    
+    public String getRiskRemarks() { return riskRemarks; }
+    public void setRiskRemarks(String riskRemarks) { this.riskRemarks = riskRemarks; }
+    
     public Date getSubmissionDate() { return submissionDate; }
     public void setSubmissionDate(Date submissionDate) { this.submissionDate = submissionDate; }
 }
